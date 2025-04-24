@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>QauipFree Map</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.9.0/mapbox-gl.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.9.0/mapbox-gl.css" rel="stylesheet" />
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    // Вставь свой MapBox токен здесь
+    mapboxgl.accessToken = 'YOUR_MAPBOX_ACCESS_TOKEN';
+
+    // Получить параметры из URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const city = urlParams.get('city') || 'kazakhstan';
+    const search = urlParams.get('search') || '';
+
+    // Координаты и масштаб для регионов и районов
+    const cityData = {
+      'kazakhstan': { center: [66.9237, 48.0196], zoom: 5 },
+      'almaty': { center: [76.8897, 43.2389], zoom: 12 },
+      'astana': { center: [71.4491, 51.1694], zoom: 12 },
+      'karaganda': { center: [73.1094, 49.8047], zoom: 12 },
+      'kyzylorda': { center: [65.5092, 44.8488], zoom: 12 },
+      'mangistau': { center: [51.1500, 43.6500], zoom: 12 },
+      'atyrau': { center: [51.8833, 47.1167], zoom: 12 },
+      'pavlodar': { center: [76.9674, 52.2873], zoom: 12 },
+      'ulytau': { center: [66.6750, 48.5481], zoom: 12 },
+      'akmola': { center: [69.4167, 51.9167], zoom: 12 },
+      'almaty-region': { center: [77.0112, 43.9966], zoom: 10 },
+      'almaty-medeu': { center: [76.9667, 43.2333], zoom: 14 },
+      'almaty-alatau': { center: [76.8667, 43.3167], zoom: 14 },
+      'almaty-bostandyk': { center: [76.9167, 43.2167], zoom: 14 }
+    };
+
+    // Установить центр и масштаб
+    const { center, zoom } = cityData[city] || cityData['kazakhstan'];
+
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/streets-v11',
+      center: center,
+      zoom: zoom
+    });
+
+    // Опасные регионы и районы
+    const dangerousPlaces = [
+      // Регионы Казахстана
+      { lng: 76.8897, lat: 43.2389, desc: 'Алматы: 24,965 преступлений (18.8%), кражи, мошенничества, убийства' },
+      { lng: 71.4491, lat: 51.1694, desc: 'Астана: 17,339 преступлений (13.1%), лидер по тяжким преступлениям' },
+      { lng: 77.0112, lat: 43.9966, desc: 'Алматинская область: 10,385 преступлений (7.8%), убийства, изнасилования' },
+      { lng: 73.1094, lat: 49.8047, desc: 'Карагандинская область: 7,562 преступления (5.7%), мошенничества, кражи' },
+      { lng: 51.1500, lat: 43.6500, desc: 'Мангистауская область: рост на 12.2% (3,474 преступления)' },
+      { lng: 51.8833, lat: 47.1167, desc: 'Атырауская область: рост на 8.5% (4,647 преступлений), низкая раскрываемость' },
+      { lng: 76.9674, lat: 52.2873, desc: 'Павлодарская область: рост на 5.6% (5,322 преступления), кражи' },
+      { lng: 65.5092, lat: 44.8488, desc: 'Кызылординская область: рост на 4.6% (3,003 преступления), наркотики' },
+      { lng: 66.6750, lat: 48.5481, desc: 'Улытауская область: рост на 2.8% (1,314 преступлений)' },
+      { lng: 69.4167, lat: 51.9167, desc: 'Акмолинская область: рост на 0.7% (5,120 преступлений)' },
+      // Районы Алматы (старые)
+      { lng: 76.9667, lat: 43.2333, desc: 'Медеуский район, Алматы: кражи, грабежи у Центрального рынка и “Рамстора”' },
+      { lng: 76.8667, lat: 43.3167, desc: 'Алатауский район, Алматы: криминогенные микрорайоны Шанырак, Улжан' },
+      { lng: 76.9167, lat: 43.2167, desc: 'Бостандыкский район, Алматы: угоны, квартирные кражи' },
+      { lng: 76.8833, lat: 43.2667, desc: 'Микрорайон Орбита, Алматы: уличная преступность' },
+      { lng: 76.9400, lat: 43.2600, desc: 'Зелёный базар, Алматы: кражи в местах массового скопления' },
+      // Новые районы Алматы
+      { lng: 76.9667, lat: 43.3333, desc: 'ГРЭС, Алматы: агрессивное поведение местных жителей' },
+      { lng: 76.8500, lat: 43.3167, desc: 'Жанакуат, Алматы: попытка похищения человека' },
+      { lng: 76.9333, lat: 43.3000, desc: 'Турксибский район, Алматы: уличное хулиганство и непрофессиональное поведение полиции' },
+      { lng: 77.0833, lat: 43.1333, desc: 'Шымбулак, Алматы: подозрительная деятельность групп лиц' },
+      { lng: 76.8167, lat: 43.2667, desc: 'Туздыбастау, Алматы: подозрения в преступлениях против несовершеннолетних' },
+      { lng: 76.9500, lat: 43.2667, desc: 'Саяхат, Алматы: попытки кражи личных вещей в общественном месте' },
+      { lng: 76.9000, lat: 43.2833, desc: 'Пятилетка, Алматы: пьяные лица, представляющие угрозу безопасности' },
+      { lng: 76.9167, lat: 43.2500, desc: 'Микрорайон Жетысу, Алматы: попытка насильственного уведения' }
+    ];
+
+    // Кастомная иконка для опасных мест (красный треугольник с восклицательным знаком)
+    map.on('load', () => {
+      const warningIcon = new Image(24, 24);
+      warningIcon.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMiAyMkgxOCAyMkwxMiAyWiIgZmlsbD0icmVkIiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iMTIiIHk9IjE4IiBmb250LXNpemU9IjE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC13ZWlnaHQ9ImJvbGQiPiE8L3RleHQ+Cjwvc3ZnPg==';
+      map.addImage('warning-icon', warningIcon);
+
+      // Добавить маркеры опасных мест с кастомной иконкой
+      dangerousPlaces.forEach(place => {
+        new mapboxgl.Marker({ element: document.createElement('div') })
+          .setLngLat([place.lng, place.lat])
+          .setPopup(new mapboxgl.Popup().setHTML(`<p>${place.desc}</p>`))
+          .addTo(map)
+          .getElement().innerHTML = '<img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMiAyMkgxOCAyMkwxMiAyWiIgZmlsbD0icmVkIiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iMTIiIHk9IjE4IiBmb250LXNpemU9IjE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC13ZWlnaHQ9ImJvbGQiPiE8L3RleHQ+Cjwvc3ZnPg==" style="width: 24px; height: 24px;">';
+      });
+
+      // Геолокация пользователя
+      let userLocation = null;
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          userLocation = [position.coords.longitude, position.coords.latitude];
+          if (city === 'kazakhstan') {
+            map.setCenter(userLocation);
+            map.setZoom(12);
+          }
+          new mapboxgl.Marker({ color: 'blue' })
+            .setLngLat(userLocation)
+            .addTo(map);
+        },
+        (error) => {
+          console.log('Геолокация не доступна: ', error);
+        }
+      );
+
+      // Функция проверки пересечения с опасной зоной
+      function isRouteSafe(route, dangerousPlaces) {
+        const routeCoords = route.geometry.coordinates;
+        for (let place of dangerousPlaces) {
+          const dangerLng = place.lng;
+          const dangerLat = place.lat;
+          const dangerRadius = 0.007; // ~700 метров
+          for (let coord of routeCoords) {
+            const dist = Math.sqrt(
+              Math.pow(coord[0] - dangerLng, 2) + Math.pow(coord[1] - dangerLat, 2)
+            );
+            if (dist < dangerRadius) {
+              return false; // Маршрут пересекает опасную зону
+            }
+          }
+        }
+        return true; // Маршрут безопасен
+      }
+
+      // Поиск безопасных мест и маршрут
+      if (search && userLocation) {
+        fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(search)}.json?proximity=${center[0]},${center[1]}&access_token=${mapboxgl.accessToken}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.features && data.features[0]) {
+              const safePlace = data.features[0];
+              const safeLocation = safePlace.center;
+              new mapboxgl.Marker({ color: 'green' })
+                .setLngLat(safeLocation)
+                .setPopup(new mapboxgl.Popup().setHTML(`<p>${safePlace.text}</p>`))
+                .addTo(map);// Построить маршрут
+              fetch(`https://api.mapbox.com/directions/v5/mapbox/walking/${userLocation[0]},${userLocation[1]};${safeLocation[0]},${safeLocation[1]}?alternatives=true&access_token=${mapboxgl.accessToken}`)
+                .then(response => response.json())
+                .then(data => {
+                  if (data.routes && data.routes.length > 0) {
+                    let safeRoute = data.routes.find(route => isRouteSafe(route, dangerousPlaces));
+                    if (!safeRoute) {
+                      safeRoute = data.routes[0]; // Если нет безопасного, берём первый
+                    }
+                    map.addLayer({
+                      id: 'route',
+                      type: 'line',
+                      source: {
+                        type: 'geojson',
+                        data: {
+                          type: 'Feature',
+                          geometry: safeRoute.geometry
+                        }
+                      },
+                      paint: { 'line-color': '#3887be', 'line-width': 5 }
+                    });
+                  } else {
+                    console.log('Маршрут не найден');
+                  }
+                })
+                .catch(error => console.log('Ошибка построения маршрута: ', error));
+            } else {
+              console.log('Безопасное место не найдено');
+            }
+          })
+          .catch(error => console.log('Ошибка поиска: ', error));
+      } else if (city === 'almaty' || city.includes('almaty-')) {
+        // Статический маршрут в Алматы
+        fetch(`https://api.mapbox.com/directions/v5/mapbox/walking/76.9000,43.2500;76.9500,43.2500?alternatives=true&access_token=${mapboxgl.accessToken}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.routes && data.routes.length > 0) {
+              let safeRoute = data.routes.find(route => isRouteSafe(route, dangerousPlaces));
+              if (!safeRoute) {
+                safeRoute = data.routes[0];
+              }
+              map.addLayer({
+                id: 'route',
+                type: 'line',
+                source: {
+                  type: 'geojson',
+                  data: {
+                    type: 'Feature',
+                    geometry: safeRoute.geometry
+                  }
+                },
+                paint: { 'line-color': '#3887be', 'line-width': 5 }
+              });
+            }
+          })
+          .catch(error => console.log('Ошибка статического маршрута: ', error));
+      }
+    });
+  </script>
+</body>
+</html>
